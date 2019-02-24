@@ -44,8 +44,6 @@ orswitch <- function(rating){
   else {return(as.numeric(rating))}
 }
 
-#####load###########
-hospital <- read.csv("/Users/zhongming/Downloads/temp2/Cleaned\ Payment.csv")
 #####server#########
 shinyServer <- function(input, output) {
   load("./hos.RData")
@@ -53,6 +51,7 @@ shinyServer <- function(input, output) {
   load("./df.RData")
   load("./hospital_ratings.RData")
   load("plot1data.RData")
+  hospital <- read.csv("/Users/zhongming/Downloads/temp2/Cleaned\ Payment.csv")
 ##########plot 1##########
   output$HosNumByState <- renderPlotly({
     c <- ggplot(HosNumByState, aes(x = State, y = Freq)) +
@@ -103,16 +102,16 @@ shinyServer <- function(input, output) {
   care6 <- reactive({input$care6}) # Timeliness of care
   care7 <- reactive({input$care7}) # Efficient use of medical imaging
   v1<-reactive({
-    if (state() == "Select") {v1<-f} 
+    if (state() == "Select") {v1<-hos} 
     else {
       selectstate<-state()
-      v1<- f %>% filter(Provider.State == state())}})  
+      v1<- hos %>% filter(State == state())}})  
   
   v2 <- reactive({
     if (type() == "Select") {v2 <- v1()}
     else{
           selecttype <- type()
-          v2 <- v1() %>% filter(mdc == type())}})
+          v2 <- v1() %>% filter(Hospital.Type == type())}})
   
   care.origin <- reactive(care.origin <- c(care1(),care2(),care3(),
                                            care4(),care5(),care6(),care7()))
@@ -160,15 +159,14 @@ shinyServer <- function(input, output) {
                      paste("(",substr(v3()[ ,"Phone.Number"],1,3),") ",substr(v3()[ ,"Phone.Number"],4,6),"-",substr(v3()[ ,"Phone.Number"],7,10),sep = ""), 
                      paste("<b>","Hospital Type: ","</b>",as.character(v3()$Hospital.Type)),  
                      paste("<b>","Provides Emergency Services: ","</b>",as.character(v3()[ ,"Emergency.Services"])),
+                     
                      paste("<b>","Overall Rating: ","</b>", as.character(v3()[ ,"Hospital.overall.rating"])),
-                     paste("<b>","Average money for each discharge of chosen disease: ", "</b>",as.character(v3()[ ,"averagepay_MDC_hos_per_discharge"])))
+                     paste("<b>","Personalized Ranking: ","</b>",v3()$Rank))
     
     
     mapStates = map("state", fill = TRUE, plot = FALSE)
     leaflet(data = mapStates) %>% addTiles() %>%
-      addPolygons(fillColor = topo.colors(10, alpha = NULL), stroke = FALSE,
-                  highlightOptions = highlightOptions(color = "white", weight = 2,bringToFront = TRUE)) %>%
-      addMarkers(v2()$lon, v2()$lat, popup = content, icon = hospIcons[v2()$TF], clusterOptions = markerClusterOptions())%>%
-      addControl(html = html_legend, position = "bottomleft")
+      addPolygons(fillColor = topo.colors(10, alpha = NULL), stroke = FALSE) %>%
+      addMarkers(v2()$lon, v2()$lat, popup = content, icon = hospIcons[v2()$TF], clusterOptions = markerClusterOptions())
   })
 }
