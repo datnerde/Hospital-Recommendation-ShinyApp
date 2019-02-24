@@ -82,7 +82,7 @@ tab2 <- navbarMenu("Hospital Statistics",
                    tabPanel(title = "Total Cost",
                             h3("Total Cost (USD)",style="color:	white",align="center",offset = -1,astyle ="font-family:helvetica;"),
                             fluidRow( wellPanel(style = "overflow-y:scroll;  height: 600px; opacity: 0.9; background-color: #ffffff;",
-                                                column(width = 9, plotOutput("map")),
+                                                column(width = 9, plotlyOutput("map")),
                                                 column(width = 3,  selectInput("sub",
                                                                                label = "Choose a the sub directory",
                                                                                choices = unique(hospital$sub)),helpText("Select tyeps of dieases")))

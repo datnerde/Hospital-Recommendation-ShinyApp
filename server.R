@@ -68,28 +68,48 @@ shinyServer <- function(input, output) {
     c + scale_fill_continuous(name = "Frequency")
   }
   )
-  library(dplyr)
-  library(plyr)
-  library(choroplethr)
-  myFunction <- function(hospital, topic) {
-    output <- hospital %>%
-      filter(sub %in% as.vector(topic)) %>%
-      ddply(.(Provider.State), summarise,
-            expected_cost =
-              sum(as.vector(as.numeric(Total.Discharges)) * (as.vector(as.numeric(Average.Covered.Charges)) +
-                                                               as.vector(as.numeric(Average.Total.Payments)))) /
-              sum(as.vector(as.numeric(Total.Discharges)))) %>%
-      select(Provider.State, expected_cost)
-    return(output)
-  }
 ##############plot2################
-  output$map <- renderPlot({
+  output$map <- renderPlotly({
+    library(shiny)
+    library(plotly)  
+    library(dplyr)
+    library(plyr)
+    library(choroplethr)
+    myFunction <- function(hospital, topic) {
+      output <- hospital %>%
+        filter(sub %in% as.vector(topic)) %>%
+        ddply(.(Provider.State), summarise, 
+              expected_cost = 
+                sum(as.vector(as.numeric(Total.Discharges)) * (as.vector(as.numeric(Average.Covered.Charges)) +
+                                                                 as.vector(as.numeric(Average.Total.Payments)))) / 
+                sum(as.vector(as.numeric(Total.Discharges)))) %>%
+        select(Provider.State, expected_cost)
+      return(output)
+    }
     df <- myFunction(hospital_payment, input$sub)
     colnames(df) <- c("region","value")
-    df$region <- state.name[match(df$region,state.abb)]
-    df$region[is.na(df$region)] <- "district of columbia"
-    df$region <- tolower(df$region)
-    state_choropleth(df, legend = "Cost (USD)")
+    # df$region <- state.name[match(df$region,state.abb)]
+    df$region[is.na(df$region)] <- "DC"
+    #df$region <- tolower(df$region)
+    df$hover <- with(df, paste("state",region, '<br>', "value", value))
+    # give state boundaries a white border
+    l <- list(color = toRGB("white"), width = 2)
+    # specify some map projection/options
+    g <- list(
+      scope = 'usa',
+      projection = list(type = 'albers usa'),
+      showlakes = TRUE,
+      lakecolor = toRGB('white')
+    )
+    plot_geo(df, locationmode = 'USA-states') %>%
+      add_trace(
+        z = ~value, text = ~hover, locations = ~region,
+        color = ~value, colors = 'Blues'
+      ) %>%
+      colorbar(title = "Millions USD") %>%
+      layout(
+        geo = g
+      )
   })
   
 ########map###############
@@ -155,7 +175,7 @@ shinyServer <- function(input, output) {
   
   output$intermap <- renderLeaflet({
     content <- paste(sep = "<br/>",
-                     paste("<font size=1.8>","<font color=green>","<b>",v3()$Hospital.Name,"</b>"),
+                     paste("<font size=5>","<font color=green>","<b>",v3()$Provider.Name),
                      paste("<font size=1>","<font color=black>",v3()$Address),
                      paste(v3()$City, v3()$State, v3()$ZIP.Code, sep = " "),  
                      paste("(",substr(v3()[ ,"Phone.Number"],1,3),") ",substr(v3()[ ,"Phone.Number"],4,6),"-",substr(v3()[ ,"Phone.Number"],7,10),sep = ""), 
@@ -164,7 +184,6 @@ shinyServer <- function(input, output) {
                      paste("<b>","Overall Rating: ","</b>", as.character(v3()[ ,"Hospital.overall.rating"])),
                      paste("<b>","Personalized Ranking: ","</b>",v3()$Rank),
                      paste("<b>","Average money for each discharge of chosen disease: ", "</b>",as.character(v3()[ ,"averagepay_MDC_hos_per_discharge"])))
-    
     
     mapStates = map("state", fill = TRUE, plot = FALSE)
     leaflet(data = mapStates) %>% addTiles() %>%
