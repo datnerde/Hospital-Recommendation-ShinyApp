@@ -19,7 +19,7 @@ calScore <- function(row,care.vec){
   # care weight for 7 criterion
   care.weight <- origin.weight*care.vec/sum(origin.weight*care.vec)
   # hospital scores for 7 criterion
-  criterion.score <- as.numeric(c(row[c(15,17,19,21,23,25,27)]))
+  criterion.score <- as.numeric(c(row[32:38]))
   
   temp <- ifelse(is.na(criterion.score),0,care.weight)
   update.weight <- temp/sum(temp)
@@ -45,6 +45,7 @@ orswitch <- function(rating){
 }
 
 #####load###########
+f<-read.csv('/Users/zhongming/Library/Containers/com.tencent.xinWeChat/Data/Library/Application\ Support/com.tencent.xinWeChat/2.0b4.0.9/5d0d51d52f72e0e3697907110ffc0230/Message/MessageTemp/313cb523c01109e8cbce2d03f1fc8c5e/File/cleaned_data.csv',stringsAsFactors = F)
 hospital <- read.csv("/Users/zhongming/Downloads/temp2/Cleaned\ Payment.csv")
 #####server#########
 shinyServer <- function(input, output) {
@@ -52,7 +53,7 @@ shinyServer <- function(input, output) {
   load("./importance.RData")
   load("./df.RData")
   load("./hospital_ratings.RData")
-  load("plot1data.RData")
+  load("./plot1data.RData")
 ##########plot 1##########
   output$HosNumByState <- renderPlotly({
     c <- ggplot(HosNumByState, aes(x = State, y = Freq)) +
@@ -161,6 +162,7 @@ shinyServer <- function(input, output) {
                      paste("<b>","Hospital Type: ","</b>",as.character(v3()$Hospital.Type)),  
                      paste("<b>","Provides Emergency Services: ","</b>",as.character(v3()[ ,"Emergency.Services"])),
                      paste("<b>","Overall Rating: ","</b>", as.character(v3()[ ,"Hospital.overall.rating"])),
+                     paste("<b>","Personalized Ranking: ","</b>",v3()$Rank),
                      paste("<b>","Average money for each discharge of chosen disease: ", "</b>",as.character(v3()[ ,"averagepay_MDC_hos_per_discharge"])))
     
     
@@ -169,6 +171,13 @@ shinyServer <- function(input, output) {
       addPolygons(fillColor = topo.colors(10, alpha = NULL), stroke = FALSE,
                   highlightOptions = highlightOptions(color = "white", weight = 2,bringToFront = TRUE)) %>%
       addMarkers(v2()$lon, v2()$lat, popup = content, icon = hospIcons[v2()$TF], clusterOptions = markerClusterOptions())%>%
-      addControl(html = html_legend, position = "bottomleft")
+      addControl(html = html_legend, position = "bottomleft")%>%
+      addEasyButton(easyButton(
+        icon="fa-globe", title="Zoom to Level 1",
+        onClick=JS("function(btn, map){ map.setZoom(1); }"))) %>%
+      addEasyButton(easyButton(
+        icon="fa-crosshairs", title="Locate Me",
+        onClick=JS("function(btn, map){ map.locate({setView: true}); }")))
+    
   })
 }
