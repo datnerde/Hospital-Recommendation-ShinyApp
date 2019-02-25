@@ -1,0 +1,144 @@
+---
+title: "Hospital"
+author: "Group 8"
+date: "February 15, 2018"
+output: html_document
+---
+
+Part 1: Random Forest and Check the importance of Variables
+
+1.) Data Preparation
+```{r}
+library(randomForest)
+library(ggplot2)
+library(rpart)
+set.seed(021818) #Create a random seed
+test.i <- sample(1:nrow(hospital), .3*nrow(hospital), replace=FALSE) #Test set contains 30% of the total data
+test.data <- hospital[test.i,]
+train.data <- hospital[-test.i,]
+```
+
+2.) Run random forest and check which parameter has the highest accuracy
+```{r}
+rf_tune <- expand.grid(mtry=seq(1, 7, by = 1), ntree = seq(500, 3000, by = 500)) #Test every combinations of two variables. mtry considers the number of variables included for each tree. 
+rf_tune$accuracy <- numeric(nrow(rf_tune)) 
+
+for(i in 1:nrow(rf_tune)){
+        our.rf <- randomForest(Hospital.overall.rating ~
+                                       Mortality.national.comparison  + 
+                                        Safety.of.care.national.comparison + 
+                                        Readmission.national.comparison + 
+                                        Patient.experience.national.comparison + 
+                                        Effectiveness.of.care.national.comparison + 
+                                        Timeliness.of.care.national.comparison + 
+                                        Efficient.use.of.medical.imaging.national.comparison 
+                               , data=train.data, na.action = na.omit,
+                                mtry=rf_tune$mtry[i],
+                                ntree=rf_tune$ntree[i]) #mtry should be ~square root the number of predictors for classification and p/3 for regression
+        rf.preds <- predict(our.rf, test.data)
+        rf_tune$accuracy[i] <- mean(rf.preds == test.data$Hospital.overall.rating, na.rm = TRUE)
+}
+best_rf_params <- rf_tune[which.max(rf_tune$accuracy),] #Choosing the model with the highest accuracy
+```
+
+3.) Run the most accurate random forest
+```{r}
+best.rf <- randomForest(Hospital.overall.rating ~
+                                Mortality.national.comparison + 
+                                Safety.of.care.national.comparison + 
+                                Readmission.national.comparison + 
+                                Patient.experience.national.comparison + 
+                                Effectiveness.of.care.national.comparison + 
+                                Timeliness.of.care.national.comparison + 
+                                Efficient.use.of.medical.imaging.national.comparison, data=train.data, na.action = na.omit,
+                        mtry=best_rf_params$mtry,
+                        ntree=best_rf_params$ntree) #mtry should be ~square root the number of predictors for classification and p/3 for regression
+rf.preds <- predict(best.rf, test.data)
+mean(rf.preds == test.data$Hospital.overall.rating, na.rm = TRUE) #The result is different because random forest has two components that are random. First it bootstraps the data on each tree with replacement and second it randomly selects the subset of variables of each tree. 
+```
+
+4.) Determine the importance of each variables into the model
+```{r}
+importance.df <- as.data.frame(importance(best.rf)) #Convert matrix into a dataframe. Importance is a measure of how much each variable decreases the Gini Index. Gini Index is a splitting criterion and represents the measurement of homogeneity of the data. It is also Index that measures impurity. 
+
+
+row.names(importance.df) <- c("Mortality", "Safety of Care", "Readmission", "Patient Experience", "Effectiveness of Care", "Timeliness of Care", "Efficient Use of Medical Imaging")
+
+importance.df$Variables = row.names(importance.df) #Formatting the data for ggplot purposes
+
+save(importance.df, file="../output/importance.RData")
+save(importance.df, file="../app/importance.RData")
+ggplot(importance.df, aes(x=Variables, y=MeanDecreaseGini)) + 
+        geom_point() + 
+        theme(axis.text.x = element_text(angle = 70, hjust = 1))+
+        ggtitle('Variable Importance')+
+        ylab("Mean Drop Gini")+
+        theme(plot.title=element_text(hjust=0.5))
+  
+```
+Why random forest?
+(1) Because it's good at handling missing values.
+(2) It can deal with both continuous and categorical variables.
+(3) In this case, it has high prediction accuracy more than other models. 
+
+
+Part 2: EDA
+
+1.) Number of hospitals by State
+```{r}
+df <- data.frame(table(hos$State))
+colnames(df) <- c('State', 'Freq')
+save(df, file="../output/df.RData")
+save(df, file="../app/df.RData")
+
+ggplot(df, aes(x=State, y = Freq))+
+  geom_bar(stat="identity", color="black", fill="grey")+
+  labs(title= "Number of Hospitals by State\n", x="\nState", y="Frequency\n")+
+  theme_classic()+
+  theme(axis.text.x = element_text(angle=90, hjust=1, size = 8))+
+  theme(plot.title= element_text(hjust=0.5))+
+  scale_y_continuous(expand = c(0,0))
+```
+
+2.) Average quality of Medicare hospitals by State 
+```{r}
+library(dplyr)
+hospital_ratings.df <- hos %>%
+                      group_by(State) %>%
+                      summarise(HospitalRating=mean(as.numeric(Hospital.overall.rating), na.rm=TRUE)) %>%
+  data.frame()
+
+save(hospital_ratings.df, file="../output/hospital_ratings.RData")
+save(hospital_ratings.df, file="../app/hospital_ratings.RData")
+
+ggplot(hospital_ratings.df, aes(x=State, y=HospitalRating))+
+  geom_bar(stat="identity", color="black", fill="grey")+
+  labs(title="Hospital Quality by State\n", x="\nState", y="Quality\nOverallRating (1-5)")+
+  theme_classic()+
+  theme(axis.text.x=element_text(angle=90, hjust=1, size = 8))+
+  theme(plot.title=element_text(hjust=0.5))+
+  ylim(0,5)
+
+```
+
+
+
+
+
+
+References:
+
+https://www.researchgate.net/profile/Andy_Liaw/publication/228451484_Classification_and_Regression_by_RandomForest/links/53fb24cc0cf20a45497047ab/Classification-and-Regression-by-RandomForest.pdf
+
+https://discuss.analyticsvidhya.com/t/decision-tree-gini-impurity-purity/37650
+
+https://stackoverflow.com/questions/22332911/plot-frequency-table-in-r
+
+https://www.kdnuggets.com/2017/10/random-forests-explained.html
+
+https://www.datasciencecentral.com/profiles/blogs/random-forests-explained-intuitively
+
+https://www.analyticsvidhya.com/blog/2014/06/introduction-random-forest-simplified/
+
+https://www.udemy.com/data-science-and-machine-learning-bootcamp-with-r/learn/v4/t/lecture/5412704?start=0
+

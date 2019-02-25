@@ -1,0 +1,149 @@
+---
+title: "R Notebook"
+---
+# Data Cleaning
+## Process raw data
+```{r}
+library(dplyr)
+
+# Read the raw dataset
+hospital <- read.csv("../data/Hospital General Information.csv")
+hospital$Phone.Number <- as.character(hospital$Phone.Number)
+
+Mortality <- hospital$Mortality.national.comparison
+Safety <- hospital$Safety.of.care.national.comparison
+Readmission <- hospital$Readmission.national.comparison
+PatientExp <- hospital$Patient.experience.national.comparison
+Effectiveness <- hospital$Effectiveness.of.care.national.comparison
+Timeliness <- hospital$Timeliness.of.care.national.comparison
+MedicalImagingEff <- hospital$Efficient.use.of.medical.imaging.national.comparison
+
+# Turn "Not Available" into NA, "Above Average" into 3, "Average" into 2 and "Below Average" into 1.
+levels(hospital$Efficient.use.of.medical.imaging.national.comparison) <- c(3, 1, NA, 2)
+levels(hospital$Timeliness.of.care.national.comparison) <- c(3, 1, NA, 2)
+levels(hospital$Effectiveness.of.care.national.comparison) <- c(3, 1, NA, 2)
+levels(hospital$Patient.experience.national.comparison) <- c(3, 1, NA, 2)
+levels(hospital$Readmission.national.comparison) <- c(3, 1, NA, 2)
+levels(hospital$Safety.of.care.national.comparison) <- c(3, 1, NA, 2)
+levels(hospital$Mortality.national.comparison) <- c(3, 1, NA, 2)
+levels(hospital$Hospital.overall.rating) <- c(1, 2, 3, 4, 5, NA)
+```
+
+## Add payment column
+```{r}
+payment <- read.csv("../data/Payment.csv")
+
+judge <- payment[,11]
+
+levels(judge) <- c(3,1,2,0,0)
+
+my.fun <- function(vec){
+  vec <- as.numeric(vec)
+  if(all(vec==c(0,0,0,0))){
+    return(NA)
+  }
+  else{
+    n <- 4 - sum(vec==0)
+    return(sum(vec)/n)
+  }
+}
+  
+mat <- matrix(judge,ncol = 4,byrow = TRUE)
+score <- apply(mat, 1, my.fun)
+
+hospital$payment <- score
+```
+
+## Add latitude/longitude and other columns
+```{r}
+# Read in latitude and longitude data processed by Python codes
+latlng <- read.csv("../output/laglng_transform.csv")
+lat <- latlng[,1]
+lon <- latlng[,2]
+
+# Bind some columns and factor the type of hospital for subsequent map marker use
+hospital <- cbind(hospital, Mortality, Safety, Readmission, PatientExp, Effectiveness, Timeliness, MedicalImagingEff, lat, lon)
+hospital <- mutate(hospital, TF = factor(hospital$Hospital.Type, labels = c("emergency","children","critical")))
+
+save(hospital, file="../output/hospital.RData")
+```
+
+## Delete latitude/longitude NA rows and error rows as it cannot be visualized on the map
+```{r}
+hos <- hospital[is.na(hospital$lat) == F & is.na(hospital$lon) == F, ]
+index <- hos$Phone.Number %in% c("2512753191", "2562339292", "9286747001", "5012022000", "6619495000", "3232262800", "5302796111", "9708249411", "8602245011", "8138987451", "3527518000", "4046864411", "4784723100", "2294247100", "3095434431", "2198665141", "5153862114", "6414374111", "7855622311", "7857382266", "6208854264", "6066389451", "2257639900", "3186496111", "2076955200", "9784662000", "5086930410", "9068848000", "5177884800", "2318323271", "3207488200", "5072388101", "6513455955", "5078312400", "3205891313", "6017863401", "5737296626", "6603354700", "4179347000", "6362398000", "4066382626", "4063533100", "4027293351", "4022452428", "4028874151", "3084232204", "4028522231", "4027593167", "4025824245", "3089282151", "4023585700", "3088362228", "4027483393", "4025723000", "3083245651", "4022283344", "4029932283", "4023853083", "4023762525", "4027465600", "4028793281", "4022692011", "3087842261", "8563631000", "5758942111", "5757697155", "6077636000", "3154931000", "5859612000", "7163264921", "6077768500", "8287654201", "8288835302", "8287654201", "7012658461", "9375213900", "7404255101", "4052826700", "5802235400", "9187862243", "9182278601", "5806541050", "4056286000", "5418817000", "7157488100", "3044698600", "4343928811", "4344473151", "8028852151", "4353872411", "2543863151", "936933841", "8648784791", "8643012000", " 8148378585","2186857300","7877829999")
+hos <- hos[index == F,]
+save(hos, file="../output/hos.RData")
+```
+
+## Following chunks that are greyed are our preliminary trials on transforming addresses to longtitude and latitude. We found that there are a considerable amount of NAs, therefore we write some python codes to improve this transformation process.
+```{geo_codes, message=F}
+# Transfer address into longtitude and latitude
+# First 2500 data
+
+library(ggmap)
+library(dplyr)
+hospital.geo=
+  hospital[1:2500, ]%>%
+  select(Address, City, State)%>%
+  mutate(ADDRESS_Ext=paste(Address, City, State, sep=","))%>%
+  mutate_geocode(ADDRESS_Ext)
+
+hospital.geo$Name <- hospital$Hospital.Name[1:2500]
+# Omit NA
+
+hospital.geo <- na.omit(hospital.geo)
+# Save first 2500 data
+save(hospital.geo, file="~/Desktop/ads_proj2/Project2/Output/hospital_geo.RData")
+```
+
+```{geo_codes, message=F}
+# Transfer address into longtitude and latitude
+# Remaining data
+hospital.geo.1=
+  hospital[2501:nrow(hospital), ]%>%
+  select(Hospital.Name, Address, City, State)%>%
+  mutate(ADDRESS_Ext=paste(Hospital.Name, Address, City, State, sep=","))%>%
+  mutate_geocode(ADDRESS_Ext)
+
+# Omit NA
+hospital.geo.1 <- na.omit(hospital.geo.1)
+# Save remaining data
+save(hospital.geo.1, file="~/Desktop/ads_proj2/Project2/Output/hospital_geo1.RData")
+```
+
+```{}
+# Combine all data(first 2500 and last)
+hospital.geo <- hospital.geo[, c(7, 1:6)]
+hospital.geo <- hospital.geo[, c(2:7, 1)]
+hospital.geo.1$Name <- hospital.geo.1$Hospital.Name 
+hospital.geo.1 <- hospital.geo.1[, c(8, 2:7)]
+hospital.geot <- rbind(hospital.geo, hospital.geo.1)
+
+# Save all data
+save(hospital.geot, file="~/Desktop/ads_proj2/Project2/Output/hospital_geot.RData")
+```
+
+```{}
+# Merge all the necessary features and processed data into final dataset
+
+# Merge hospital and hospital.geot into hos
+hos <- merge(x = hospital, y = hospital.geot, by.x = c("Hospital.Name", "Address"), by.y = c("Name", "Address"), all.y = TRUE)
+hos <- hos[, c(-20, -21)]   # delete reduplicated columns
+
+# Change colnames of hos
+colnames(hos) <- c("Name","Address","City","State","ZIP.Code",  
+                   "County.Name","Phone.Number","Type",  
+                   "Hospital.Ownership","Emergency Services",  
+                   "Overall Rating","Mortality.national.comparison",  
+                   "Safety.of.care.national.comparison",  
+                   "Readmission.national.comparison",  
+                   "Patient.experience.national.comparison",  
+                   "Effectiveness.of.care.national.comparison" ,  
+                   "Timeliness.of.care.national.comparison",  
+                   "Efficient.use.of.medical.imaging.national.comparison",  
+                   "payment","ADDRESS_Ext","lon","lat")                    
+
+# Save the final dataset
+save(hos, file="~/Desktop/ads_proj2/Project2/Output/hos.RData")
+```
