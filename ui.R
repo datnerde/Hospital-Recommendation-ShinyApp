@@ -19,7 +19,7 @@ library("plotly")
 
 
 ##Import Data -----
-final_hos<-read.csv('/Users/zhongming/Documents/GitHub/shinny\ app/cleaned_data.csv',stringsAsFactors = F)
+#final_hos<-read.csv('E:/GitHub/shiny app/cleaned_data.csv',stringsAsFactors = F)
 
 ##1.Find Hospital -----
 tab1 <- tabPanel("Find Your Hospital",
@@ -27,10 +27,10 @@ tab1 <- tabPanel("Find Your Hospital",
                  #CSS file for page style
                  includeCSS("theme.css"),
                  tags$div(
-                 leafletOutput("intermap",width="120%", height= "800px"),
-                 absolutePanel(id = "controls", class ="City_Carrier_panel panel panel-default", fixed = TRUE,
-                               draggable = TRUE, top = 60, left = "auto", right = 20,
-                               bottom = "auto", width = 330, height = "auto",
+                 leafletOutput("intermap",width="100%", height= "600px"),
+                 absolutePanel(id = "controls", class ="City_Carrier_panel panel panel-default", fixed =F,
+                               draggable =FALSE, top = 80, left = "auto", right = 20,
+                               bottom = "auto", width = 300, height = "auto",
                                h2("Hospital Selection"),
                                selectInput("state", label = "State", 
                                            choices = c("Select","AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN",
@@ -49,10 +49,7 @@ tab1 <- tabPanel("Find Your Hospital",
                                                        " Mental Diseases & Disorders", "Alcoho-l/Drug Use or Induced Mental Disorders",
                                                        " Injuries, Poison & Toxic Effects of Drugs" ,
                                                        " Factors influe-ncing Health Status",
-                                                       "Ear, Nose, Mouth & Throat"), selected = "Ear, Nose, Mouth & Throat")),
-                               # selectInput("type", label = "Type", 
-                               #             choices = c("Select","Acute Care Hospitals","Critical Access Hospitals","Childrens"), selected = "Select")),
-                absolutePanel(id = "Pop_Panel", class = "City_Carrier_panel panel panel-default",top=60,draggable=TRUE,right="auto",bottom="auto",width = 330,height="auto",
+                                                       "Ear, Nose, Mouth & Throat"), selected = "Ear, Nose, Mouth & Throat"),
                                radioButtons("care1",label = "Mortality",
                                             choices = list("Very Care"=3,"Care"=2,"Not Care"=1),
                                             selected = 2, inline = T),
@@ -73,14 +70,19 @@ tab1 <- tabPanel("Find Your Hospital",
                                             selected = 2, inline = T),
                                radioButtons("care7",label = "Efficient Use of Medical Imaging",
                                             choices = list("Very Care"=3,"Care"=2,"Not Care"=1),
-                                            selected = 2, inline = T))))
+                                            selected = 2, inline = T)),
+                 tabBox(width = 12,
+                        tabPanel('Personalized Ranking',
+                                 dataTableOutput("tablerank"),
+                                 tags$style(type="text/css", '#myTable tfoot {display:none;}')
+                        ))))
           
 
 ##2.Descriptive Statistics -----
 tab2 <- navbarMenu("Hospital Statistics",
                   
                    tabPanel(title = "Total Cost",
-                            h3("Total Cost (USD)",style="color:	white",align="center",offset = -1,astyle ="font-family:helvetica;"),
+                            h3("Total Cost (USD)",style="color:	black",align="center",offset = -1,astyle ="font-family:helvetica;"),
                             fluidRow( wellPanel(style = "overflow-y:scroll;  height: 600px; opacity: 0.9; background-color: #ffffff;",
                                                 column(width = 9, plotlyOutput("map")),
                                                 column(width = 3,  selectInput("sub",
@@ -88,7 +90,7 @@ tab2 <- navbarMenu("Hospital Statistics",
                                                                                choices = unique(hospital$sub)),helpText("Select tyeps of dieases")))
                             )),
                    tabPanel(title = "Hospital Number",
-                            h3("Number of Hospitals",style="color:	white",align="center",offset = -1,astyle ="font-family:helvetica;"),
+                            h3("Number of Hospitals",style="color:	black",align="center",offset = -1,astyle ="font-family:helvetica;"),
                             fluidRow( wellPanel(style = "overflow-y:scroll;  height: 600px; opacity: 0.9; background-color: #ffffff;",
                                                 plotlyOutput("HosNumByState")))))
                                                
@@ -140,7 +142,7 @@ tab3 <-navbarMenu("Insturction",
 
 
 ## UI 
-ui <- shinyUI(navbarPage(title = strong("Hospital Money Saver"),
+ui <- shinyUI(navbarPage(title = strong("Health Intelligence"),
                          tab1,
                          tab2,
                          tab3

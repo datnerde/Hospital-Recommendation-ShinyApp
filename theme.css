@@ -30,16 +30,20 @@
 
 
 .City_Carrier_panel{
-  width:20%;
-  padding: 10px;
-  background-color: inherit;
-  position: relative;
-  top: 10px;
-  right: 15px;
-  border-radius: 10px;
-  border-width: 1px;
-  border-style: solid;
-  border-color: black;
+   /* Appearance */
+  background-color: white;
+  padding: 0 20px 20px 20px;
+  cursor: move;
+  /* Fade out while not hovering */
+  opacity: 0.65;
+  zoom: 0.9;
+  transition: opacity 500ms 1s;
+}
+
+.City_Carrier_panel:hover {
+  /* Fade in while hovering */
+  opacity: 0.95;
+  transition-delay: 0;
 }
 
 .City_Carrier{
@@ -64,7 +68,10 @@
   border-radius: 10px;
   font-size: 14px;
   color: black;
-  
+  /* Fade out while not hovering */
+  opacity: 0.65;
+  zoom: 0.9;
+  transition: opacity 500ms 1s;
 }
 
 .Pop_Panel .checkbox{
@@ -99,8 +106,7 @@
 
 
 body {
-  
-  background-image: url("https://previews.123rf.com/images/pitinan/pitinan1802/pitinan180200297/96078410-health-insurance-concept-doctor-in-hospital-with-health-insurance-related-icons-in-modern-graphic-in.jpg");
+  background-image: url("http://cdn.3plearning.com/wp-content/uploads/2014/02/NewMathleticsBackground-White-1-1-1.jpg");
 
  
 }

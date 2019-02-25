@@ -12,6 +12,8 @@ library(mapproj)
 library(randomForest)
 library(ggplot2)
 library(rpart)
+library(plyr)
+library(choroplethr)
 
 calScore <- function(row,care.vec){
   # weight suggested for 7 criterion
@@ -19,7 +21,7 @@ calScore <- function(row,care.vec){
   # care weight for 7 criterion
   care.weight <- origin.weight*care.vec/sum(origin.weight*care.vec)
   # hospital scores for 7 criterion
-  criterion.score <- as.numeric(c(row[32:38]))
+  criterion.score <- as.numeric(c(row[row[32:38]]))
   
   temp <- ifelse(is.na(criterion.score),0,care.weight)
   update.weight <- temp/sum(temp)
@@ -32,9 +34,10 @@ calScore <- function(row,care.vec){
 
 payswitch <- function(payment){
   if(is.na(payment)) {return("Not Avaliable")}
-  else {if(payment<=1.5) {return("$")}
-    else{if(payment<2.5) {return("$$")}
-      else{return("$$$")}}}
+  else {if(payment<=4328) {return("$")}
+    else{if(payment<=5837) {return("$$")}
+      else{if(payment<=8383) {return("$$$")}
+        else{return("$$$$")}}}}
 }
 
 # switch overall rating
@@ -44,16 +47,16 @@ orswitch <- function(rating){
   else {return(as.numeric(rating))}
 }
 
-#####load###########
-f<-read.csv('/Users/zhongming/Library/Containers/com.tencent.xinWeChat/Data/Library/Application\ Support/com.tencent.xinWeChat/2.0b4.0.9/5d0d51d52f72e0e3697907110ffc0230/Message/MessageTemp/313cb523c01109e8cbce2d03f1fc8c5e/File/cleaned_data.csv',stringsAsFactors = F)
-hospital <- read.csv("/Users/zhongming/Downloads/temp2/Cleaned\ Payment.csv")
+#####load##########
+load("./f.RData")
+load('./Hospital.RData')
 #####server#########
 shinyServer <- function(input, output) {
   load("./hos.RData")
   load("./importance.RData")
   load("./df.RData")
   load("./hospital_ratings.RData")
-  load("./plot1data.RData")
+  load("plot1data.RData")
 ##########plot 1##########
   output$HosNumByState <- renderPlotly({
     c <- ggplot(HosNumByState, aes(x = State, y = Freq)) +
@@ -68,7 +71,8 @@ shinyServer <- function(input, output) {
     c + scale_fill_continuous(name = "Frequency")
   }
   )
-##############plot2################
+
+  ##############plot2################
   output$map <- renderPlotly({
     library(shiny)
     library(plotly)  
@@ -123,11 +127,29 @@ shinyServer <- function(input, output) {
   care5 <- reactive({input$care5}) # Effectiveness of care
   care6 <- reactive({input$care6}) # Timeliness of care
   care7 <- reactive({input$care7}) # Efficient use of medical imaging
+  
   v1<-reactive({
-    if (state() == "Select") {v1<-f} 
+    if (state() == "Select") {v1<-f%>%
+      filter(Mortality>=care1())%>%
+      filter(Safety>=care2())%>%
+      filter(Readmission>=care3())%>%
+      filter(Patient.experience>=care4())%>%
+      filter(Effectiveness>=care5())%>%
+      filter(Timeliness>=care6())%>%
+      filter(Efficient.use.of.medical.image>=care7())
+             } 
     else {
       selectstate<-state()
-      v1<- f %>% filter(Provider.State == state())}})  
+      v1<- f %>% filter(Provider.State == state())%>%
+      filter(Mortality>=care1())%>%
+      filter(Safety>=care2())%>%
+      filter(Readmission>=care3())%>%
+      filter(Patient.experience>=care4())%>%
+      filter(Effectiveness>=care5())%>%
+      filter(Timeliness>=care6())%>%
+      filter(Efficient.use.of.medical.image>=care7())
+      }
+    })
   
   v2 <- reactive({
     if (type() == "Select") {v2 <- v1()}
@@ -149,15 +171,7 @@ shinyServer <- function(input, output) {
   # orders for hospitals
   ord <- reactive(order(score(),decreasing = TRUE))
   
-  
-  # # Care vector for 7 criterion
-  # care.vec <- reactive(as.numeric(care.origin()))
-  # 
-  # # Scores of hospitals in the selected state
-  # score <- reactive(apply(data.frame(v2()),1,calScore,care.vec = care.vec()))
-  # 
-  # # orders for hospitals
-  # ord <- reactive(order(score(),decreasing = TRUE))
+
   
   # ranks for hospitals
   rk <- reactive(floor(frankv(score(),order = -1,ties.method = "min")))
@@ -165,38 +179,47 @@ shinyServer <- function(input, output) {
   v3 <- reactive({v3 <- cbind(v2(),Order = ord(),Rank = rk())})
   
   #Icon for the markers
-  hospIcons <- iconList(emergency = makeIcon(iconUrl = 'https://github.com/Grandeurwang/class-activity-1/blob/master/emergency_icon.png', iconWidth = 25, iconHeight =30),
-                        critical = makeIcon(iconUrl = "https://github.com/Grandeurwang/class-activity-1/blob/master/critical_icon.png", iconWidth = 25, iconHeight =30),
-                        children = makeIcon(iconUrl = "https://github.com/Grandeurwang/class-activity-1/blob/master/children_icon.png", iconWidth = 25, iconHeight =30))
+  hospIcons <- iconList(emergency = makeIcon("emergency_icon.png", iconWidth = 25, iconHeight =30),
+                        critical = makeIcon("critical_icon.png", iconWidth = 25, iconHeight =30),
+                        children = makeIcon("children_icon.png", iconWidth = 20, iconHeight =30))
   
-  html_legend <- "<img src='https://github.com/Grandeurwang/class-activity-1/blob/master/emergency_icon.png'>Acute Care Hospitals<br/>
-  <img src='https://github.com/Grandeurwang/class-activity-1/blob/master/critical_icon.png'>Critical Access Hospitals<br/>
-  <img src='https://github.com/Grandeurwang/class-activity-1/blob/master/children_icon.png'>Children Hospitals"
-  
+                        
   output$intermap <- renderLeaflet({
     content <- paste(sep = "<br/>",
-                     paste("<font size=5>","<font color=green>","<b>",v3()$Provider.Name),
+                     paste("<font size=4>","<font color=green>","<b>",v3()$Provider.Name,"</b>"),
                      paste("<font size=1>","<font color=black>",v3()$Address),
                      paste(v3()$City, v3()$State, v3()$ZIP.Code, sep = " "),  
                      paste("(",substr(v3()[ ,"Phone.Number"],1,3),") ",substr(v3()[ ,"Phone.Number"],4,6),"-",substr(v3()[ ,"Phone.Number"],7,10),sep = ""), 
                      paste("<b>","Hospital Type: ","</b>",as.character(v3()$Hospital.Type)),  
+                     paste("<b>","Hospital Ownership: ","</b>",as.character(v3()$Hospital.Ownership)), 
                      paste("<b>","Provides Emergency Services: ","</b>",as.character(v3()[ ,"Emergency.Services"])),
                      paste("<b>","Overall Rating: ","</b>", as.character(v3()[ ,"Hospital.overall.rating"])),
                      paste("<b>","Personalized Ranking: ","</b>",v3()$Rank),
-                     paste("<b>","Average money for each discharge of chosen disease: ", "</b>",as.character(v3()[ ,"averagepay_MDC_hos_per_discharge"])))
+                     paste("<b>","Average cost of chosen disease for each discharge: ", "</b>",as.character(v3()[ ,"averagepay_MDC_hos_per_discharge"])))
+    
     
     mapStates = map("state", fill = TRUE, plot = FALSE)
-    leaflet(data = mapStates) %>% addTiles() %>%
-      addPolygons(fillColor = topo.colors(10, alpha = NULL), stroke = FALSE,
-                  highlightOptions = highlightOptions(color = "white", weight = 2,bringToFront = TRUE)) %>%
+    leaflet(data = mapStates) %>% 
+      addProviderTiles(providers$HikeBike.HikeBike) %>%
+      addMiniMap(
+        tiles = providers$Esri.WorldStreetMap,
+        toggleDisplay = TRUE,
+        position = 'bottomleft') %>%
+      addPolygons(stroke = T,color = 'grey',weight = 1,fillOpacity = 0,
+                  highlightOptions = highlightOptions(color = "black", weight = 2,bringToFront = TRUE)) %>%
       addMarkers(v2()$lon, v2()$lat, popup = content, icon = hospIcons[v2()$TF], clusterOptions = markerClusterOptions())%>%
-      addControl(html = html_legend, position = "bottomleft")%>%
       addEasyButton(easyButton(
         icon="fa-globe", title="Zoom to Level 1",
         onClick=JS("function(btn, map){ map.setZoom(1); }"))) %>%
       addEasyButton(easyButton(
         icon="fa-crosshairs", title="Locate Me",
         onClick=JS("function(btn, map){ map.locate({setView: true}); }")))
-    
-  })
+    })
+  output$tablerank = renderDataTable({
+    rankedtable <- cbind(v3()$Rank[ord()],v3()[ord(),c(2, 3, 4, 11,9)])
+    rankedtable$averagepay_MDC_hos_per_discharge <- apply(data.frame(rankedtable$averagepay_MDC_hos_per_discharge),1,payswitch)
+    colnames(rankedtable) <- c("Rank","Hospital Name","Address","City",
+                               "TEL","COST")
+    rankedtable
+  },options = list(orderClasses = TRUE, iDisplayLength = 5, lengthMenu = c(5, 10, 15, 20)))
 }
