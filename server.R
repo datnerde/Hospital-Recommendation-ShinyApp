@@ -14,6 +14,7 @@ library(ggplot2)
 library(rpart)
 library(plyr)
 library(choroplethr)
+library(shinydashboard)
 
 calScore <- function(row,care.vec){
   # weight suggested for 7 criterion
@@ -48,15 +49,15 @@ orswitch <- function(rating){
 }
 
 #####load##########
+load("./hos.RData")
+load("./importance.RData")
+load("./df.RData")
+load("./hospital_ratings.RData")
+load("./plot1data.RData")
 load("./f.RData")
-load('./Hospital.RData')
 #####server#########
 shinyServer <- function(input, output) {
-  load("./hos.RData")
-  load("./importance.RData")
-  load("./df.RData")
-  load("./hospital_ratings.RData")
-  load("plot1data.RData")
+  
 ##########plot 1##########
   output$HosNumByState <- renderPlotly({
     c <- ggplot(HosNumByState, aes(x = State, y = Freq)) +

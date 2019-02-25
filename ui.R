@@ -12,6 +12,7 @@ library("ggthemes")
 library("formattable")
 library("base64enc")
 library("plotly")
+library(shinydashboard)
 
 #devtools::install_github("timelyportfolio/parcoords")
 
@@ -20,7 +21,12 @@ library("plotly")
 
 ##Import Data -----
 #final_hos<-read.csv('E:/GitHub/shiny app/cleaned_data.csv',stringsAsFactors = F)
-
+load("./hos.RData")
+load("./importance.RData")
+load("./df.RData")
+load("./hospital_ratings.RData")
+load("./plot1data.RData")
+load("./f.RData")
 ##1.Find Hospital -----
 tab1 <- tabPanel("Find Your Hospital",
                  
