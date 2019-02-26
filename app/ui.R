@@ -95,6 +95,16 @@ tab2 <- navbarMenu("Hospital Statistics",
                                                                                label = "Choose a the sub directory",
                                                                                choices = unique(hospital$sub)),helpText("Select tyeps of dieases")))
                             )),
+                   
+                   tabPanel(title = "Total Cost by Ownership",
+                            h3("Total Cost (USD)",style="color:	black",align="center",offset = -1,astyle ="font-family:helvetica;"),
+                            fluidRow( wellPanel(style = "overflow-y:scroll;  height: 600px; opacity: 0.9; background-color: #ffffff;",
+                                                column(width = 9, plotlyOutput("map1")),
+                                                column(width = 3,  selectInput("sub1",
+                                                                               label = "Choose a the sub directory",
+                                                                               choices = unique(hospital$Hospital.Ownership)),helpText("Select tyeps of dieases")))
+                            )),
+                   
                    tabPanel(title = "Hospital Number",
                             h3("Number of Hospitals",style="color:	black",align="center",offset = -1,astyle ="font-family:helvetica;"),
                             fluidRow( wellPanel(style = "overflow-y:scroll;  height: 600px; opacity: 0.9; background-color: #ffffff;",
@@ -145,7 +155,10 @@ tab3 <-navbarMenu("Insturction",
              fluidRow(
                wellPanel(style = "overflow-y:scroll; height: 600px; opacity: 0.9; background-color: #ffffff;",
                          h1("Developers"),
-                            strong("Ming Zhong, mz2692@columbia.edu")))))
+                            strong("Cai, Zongbo, zc2455@columbia.edu"), br(),
+                            strong("Li, Jingyue, jl5283@columbia.edu"), br(),
+                            strong("Wang, Guanren, gw2380@columbia.edu"), br(),
+                            strong("Zhong, Ming, mz2692@columbia.edu")))))
 
 
 

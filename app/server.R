@@ -117,6 +117,52 @@ shinyServer <- function(input, output) {
       )
   })
   
+  ##############plot3################
+  output$map1 <- renderPlotly({
+    library(shiny)
+    library(plotly)  
+    library(dplyr)
+    library(plyr)
+    library(choroplethr)
+    myFunction <- function(hospital, topic) {
+      output <- hospital %>%
+        filter(Hospital.Ownership %in% as.vector(topic)) %>%
+        ddply(.(Provider.State), summarise, 
+              expected_cost = 
+                sum(as.vector(as.numeric(Total.Discharges)) * (as.vector(as.numeric(Average.Covered.Charges)) +
+                                                                 as.vector(as.numeric(Average.Total.Payments)))) / 
+                sum(as.vector(as.numeric(Total.Discharges)))) %>%
+        select(Provider.State, expected_cost)
+      return(output)
+    }
+    df <- hospital %>% inner_join(hospital_payment, by = c("Provider.ID" = "Provider.Id"))
+    df <- myFunction(df, input$sub1)
+    colnames(df) <- c("region","value")
+    # df$region <- state.name[match(df$region,state.abb)]
+    df$region[is.na(df$region)] <- "DC"
+    #df$region <- tolower(df$region)
+    df$hover <- with(df, paste("state",region, '<br>', "value", value))
+    # give state boundaries a white border
+    l <- list(color = toRGB("white"), width = 2)
+    # specify some map projection/options
+    g <- list(
+      scope = 'usa',
+      projection = list(type = 'albers usa'),
+      showlakes = TRUE,
+      lakecolor = toRGB('white')
+    )
+    plot_geo(df, locationmode = 'USA-states') %>%
+      add_trace(
+        z = ~value, text = ~hover, locations = ~region,
+        color = ~value, colors = 'Greens'
+      ) %>%
+      colorbar(title = "Millions USD") %>%
+      layout(
+        title = 'Ownership',
+        geo = g
+      )
+  })
+  
 ########map###############
   state<-reactive({state<-input$state})
   type <- reactive({type <- input$type})
