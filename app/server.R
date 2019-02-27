@@ -16,37 +16,6 @@ library(plyr)
 library(choroplethr)
 library(shinydashboard)
 
-calScore <- function(row,care.vec){
-  # weight suggested for 7 criterion
-  origin.weight <- c(11,11,11,11,2,2,2) 
-  # care weight for 7 criterion
-  care.weight <- origin.weight*care.vec/sum(origin.weight*care.vec)
-  # hospital scores for 7 criterion
-  criterion.score <- as.numeric(c(row[row[32:38]]))
-  
-  temp <- ifelse(is.na(criterion.score),0,care.weight)
-  update.weight <- temp/sum(temp)
-  
-  score <- update.weight*criterion.score
-  return(sum(score,na.rm = TRUE))
-}
-
-# switch payment to dollar signs
-
-payswitch <- function(payment){
-  if(is.na(payment)) {return("Not Avaliable")}
-  else {if(payment<=4328) {return("$")}
-    else{if(payment<=5837) {return("$$")}
-      else{if(payment<=8383) {return("$$$")}
-        else{return("$$$$")}}}}
-}
-
-# switch overall rating
-
-orswitch <- function(rating){
-  if(is.na(rating)){return("Not Available")}
-  else {return(as.numeric(rating))}
-}
 
 #####load##########
 load("./hos.RData")
@@ -119,11 +88,6 @@ shinyServer <- function(input, output) {
   
   ##############plot3################
   output$map1 <- renderPlotly({
-    library(shiny)
-    library(plotly)  
-    library(dplyr)
-    library(plyr)
-    library(choroplethr)
     myFunction <- function(hospital, topic) {
       output <- hospital %>%
         filter(Hospital.Ownership %in% as.vector(topic)) %>%
@@ -164,6 +128,7 @@ shinyServer <- function(input, output) {
   })
   
 ########map###############
+  
   state<-reactive({state<-input$state})
   type <- reactive({type <- input$type})
   
@@ -206,24 +171,63 @@ shinyServer <- function(input, output) {
   
   care.origin <- reactive(care.origin <- c(care1(),care2(),care3(),
                                            care4(),care5(),care6(),care7()))
-  # Dataset for the selected state
-  data.state <- reactive(data.state <- v2())
+  
+  
+  #define functions to give personalized ranking
+  personal_rank <- function(data,care.vec){
+    # weight suggested for 7 criterion
+    origin.weight <- c(11,11,11,11,2,2,2) 
+    # care weight for 7 criterion
+    care.weight <- origin.weight*care.vec
+    # hospital scores for 7 criterion
+    criterion.score <- as.matrix(data%>%select(Mortality,Safety,Readmission,
+                                               Patient.experience,Effectiveness,Timeliness,
+                                               Efficient.use.of.medical.image))
+    criterion.score[is.na(criterion.score)] <- 0
+
+    #criterion.score <- as.numeric(c(row[row[32:38]]))
+    score<-c()
+    for (i in 1:length(criterion.score[,1])) {
+      score[i] <- sum(care.weight*criterion.score[i,])
+    }
+    data$score<-score
+    data$rank<-frankv(data,cols = 'score',ties.method = 'dense',order=-1)
+    data<-data[order(data$score,decreasing = T),]
+    return(data)
+  }
+  
+  # switch payment to dollar signs
+  
+  payswitch <- function(payment){
+    if(is.na(payment)) {return("Not Avaliable")}
+    else {if(payment<=4328) {return("$")}
+      else{if(payment<=5837) {return("$$")}
+        else{if(payment<=8383) {return("$$$")}
+          else{return("$$$$")}}}}
+  }
+  
+  # switch overall rating
+  
+  orswitch <- function(rating){
+    if(is.na(rating)){return("Not Available")}
+    else {return(as.numeric(rating))}
+  }
+  
   
   # Care vector for 7 criterion
   care.vec <- reactive(as.numeric(care.origin()))
   
   # Scores of hospitals in the selected state
-  score <- reactive(apply(data.frame(data.state()),1,calScore,care.vec = care.vec()))
+  #score <- reactive(apply(data.frame(v2()),1,calScore,care.vec = care.vec()))
   
   # orders for hospitals
-  ord <- reactive(order(score(),decreasing = TRUE))
+  #ord <- reactive(order(score(),decreasing = TRUE))
   
 
   
   # ranks for hospitals
-  rk <- reactive(floor(frankv(score(),order = -1,ties.method = "min")))
   
-  v3 <- reactive({v3 <- cbind(v2(),Order = ord(),Rank = rk())})
+  v3 <- reactive({v3 <- personal_rank(v2(),care.vec())})
   
   #Icon for the markers
   hospIcons <- iconList(emergency = makeIcon("emergency_icon.png", iconWidth = 25, iconHeight =30),
@@ -233,15 +237,15 @@ shinyServer <- function(input, output) {
                         
   output$intermap <- renderLeaflet({
     content <- paste(sep = "<br/>",
-                     paste("<font size=4>","<font color=green>","<b>",v3()$Provider.Name,"</b>"),
+                     paste("<font size=4>","<font color=red>","<b>",v3()$Provider.Name,"</b>"),
                      paste("<font size=1>","<font color=black>",v3()$Address),
                      paste(v3()$City, v3()$State, v3()$ZIP.Code, sep = " "),  
-                     paste("(",substr(v3()[ ,"Phone.Number"],1,3),") ",substr(v3()[ ,"Phone.Number"],4,6),"-",substr(v3()[ ,"Phone.Number"],7,10),sep = ""), 
+                     paste("<b>","Tel: ","</b>","(",substr(v3()[ ,"Phone.Number"],1,3),") ",substr(v3()[ ,"Phone.Number"],4,6),"-",substr(v3()[ ,"Phone.Number"],7,10),sep = ""), 
                      paste("<b>","Hospital Type: ","</b>",as.character(v3()$Hospital.Type)),  
                      paste("<b>","Hospital Ownership: ","</b>",as.character(v3()$Hospital.Ownership)), 
                      paste("<b>","Provides Emergency Services: ","</b>",as.character(v3()[ ,"Emergency.Services"])),
                      paste("<b>","Overall Rating: ","</b>", as.character(v3()[ ,"Hospital.overall.rating"])),
-                     paste("<b>","Personalized Ranking: ","</b>",v3()$Rank),
+                     paste("<b>","Personalized Ranking: ","</b>",v3()$rank),
                      paste("<b>","Average cost of chosen disease for each discharge: ", "</b>",as.character(v3()[ ,"averagepay_MDC_hos_per_discharge"])))
     
     
@@ -262,8 +266,11 @@ shinyServer <- function(input, output) {
         icon="fa-crosshairs", title="Locate Me",
         onClick=JS("function(btn, map){ map.locate({setView: true}); }")))
     })
+  
+  
   output$tablerank = renderDataTable({
-    rankedtable <- cbind(v3()$Rank[ord()],v3()[ord(),c(2, 3, 4, 11,9)])
+    rankedtable <- v3()%>%select(rank,Provider.Name,Provider.Street.Address,Provider.City,
+                                 Phone.Number,averagepay_MDC_hos_per_discharge)
     rankedtable$averagepay_MDC_hos_per_discharge <- apply(data.frame(rankedtable$averagepay_MDC_hos_per_discharge),1,payswitch)
     colnames(rankedtable) <- c("Rank","Hospital Name","Address","City",
                                "TEL","COST")
