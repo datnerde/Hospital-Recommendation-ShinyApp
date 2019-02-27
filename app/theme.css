@@ -1,0 +1,112 @@
+.navbar{
+  -webkit-box-shadow: 0px 6px 39px -9px rgba(0,0,0,0.75);
+  -moz-box-shadow: 0px 6px 39px -9px rgba(0,0,0,0.75);
+  box-shadow: 0px 6px 39px -9px rgba(0,0,0,0.75);
+  background: -webkit-linear-gradient(top, rgba(226,226,226,1) 0%, rgba(209,209,209,1) 0%, rgba(219,219,219,1) 0%,      rgba(254,254,254,1) 100%);;
+  border: none;
+  
+}
+
+.nav li{
+  margin:5px;
+  font-size:15px;
+  border-radius:5px;
+}
+
+.nav li:hover{
+  margin:5px;
+  font-size:15px;
+  border-radius:5px;
+  box-shadow: 0px 0px 21px 2px rgba(0,0,0,0.75);
+  transition-duration: 0.5s;
+}
+
+
+.nav .active a{
+  font-size:15px;
+  border-radius:5px;
+  box-shadow: 0px 0px 21px 2px rgba(0,0,0,0.75);
+}
+
+
+.City_Carrier_panel{
+   /* Appearance */
+  background-color: white;
+  padding: 0 20px 20px 20px;
+  cursor: move;
+  /* Fade out while not hovering */
+  opacity: 0.65;
+  zoom: 0.9;
+  transition: opacity 500ms 1s;
+}
+
+.City_Carrier_panel:hover {
+  /* Fade in while hovering */
+  opacity: 0.95;
+  transition-delay: 0;
+}
+
+.City_Carrier{
+  width: 100%;
+  position:relative;
+  -webkit-box-shadow: 0px 0px 20px 8px rgba(0,0,0,0.75);
+  -moz-box-shadow: 0px 0px 20px 8px rgba(0,0,0,0.75);
+  box-shadow: 0px 0px 20px 8px rgba(0,0,0,0.75);
+}
+
+.frqstar{
+  width: 13px;
+  height: 13px;
+}
+
+.Pop_Panel{
+  width: 95px;
+  background-color: inherit;
+  position: relative;
+  top: 130px;
+  left: 5px;
+  border-radius: 10px;
+  font-size: 14px;
+  color: black;
+  /* Fade out while not hovering */
+  opacity: 0.65;
+  zoom: 0.9;
+  transition: opacity 500ms 1s;
+}
+
+.Pop_Panel .checkbox{
+  position: relative;
+  top: 5px;
+  left: 5px;
+  color: black
+}
+
+
+.Pop_Panel .checkbox span{
+  color: black;
+}
+
+.Pop_Panel .checkbox .frqstar{
+  width: 13px;
+  height: 13px;
+  color: black;
+}
+
+.City_Carrier .control-label{
+  color: black;
+  position: relative;
+  top: 1px;
+  left: 5px;
+}
+
+
+.control-label{
+  color:black;
+}
+
+
+body {
+  background-image: url("http://cdn.3plearning.com/wp-content/uploads/2014/02/NewMathleticsBackground-White-1-1-1.jpg");
+
+ 
+}

@@ -1,0 +1,12 @@
+name: hospital_intelligence
+title: hospital_intelligence
+username:
+account: mingzhong
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 737592
+bundleId: 1901532
+url: https://mingzhong.shinyapps.io/hospital_intelligence/
+when: 1551208301.66942
+asMultiple: FALSE
+asStatic: FALSE
